@@ -1,0 +1,26 @@
+{
+  "name": "rpg_backend",
+  "version": "1.0.0",
+  "description": "Este repositorio tiene como objetivo desarrollar una API REST en Node.js + Express que permita gestionar personajes de un juego de rol y ejecutar batallas entre ellos, considerando atributos básicos y características adicionales que influyan en la estrategia de combate.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dan18eP/rpg_backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dan18eP/rpg_backend/issues"
+  },
+  "homepage": "https://github.com/Dan18eP/rpg_backend#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
+  }
+}
