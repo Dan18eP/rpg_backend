@@ -74,14 +74,30 @@ const simularBatalla = async (req, res) => {
         let atacante = p1.agilidad >= p2.agilidad ? p1 : p2;
         let defensor = atacante === p1 ? p2 : p1;
 
+        let staminaP1 = 100;
+        let staminaP2 = 100;
+
+        let danioTotalP1 = 0;
+        let danioTotalP2 = 0;
+
         while (vidaP1 > 0 && vidaP2 > 0) {
 
             const atkA = ejecutarAtaque(atacante, defensor);
 
+            // atacante hace daño
+            // defensor recibe daño
+
             if (defensor.id === p1.id) {
                 vidaP1 -= atkA.danio;
+
+                danioTotalP2 += atkA.danio;
+                staminaP2 -= atkA.danio * 0.1;
+
             } else {
                 vidaP2 -= atkA.danio;
+
+                danioTotalP1 += atkA.danio;
+                staminaP1 -= atkA.danio * 0.1;
             }
 
             log.push(
@@ -94,10 +110,20 @@ const simularBatalla = async (req, res) => {
 
             const atkB = ejecutarAtaque(defensor, atacante);
 
+            // atacante recibe daño
+            // defensor hace daño
+
             if (atacante.id === p1.id) {
                 vidaP1 -= atkB.danio;
+
+                danioTotalP2 += atkB.danio;
+                staminaP2 -= atkB.danio * 0.1;
+                
             } else {
                 vidaP2 -= atkB.danio;
+
+                danioTotalP1 += atkB.danio;
+                staminaP1 -= atkB.danio * 0.1;
             }
 
             log.push(
@@ -107,8 +133,15 @@ const simularBatalla = async (req, res) => {
             ronda++;
         }
 
+        staminaP1 = Math.max(staminaP1, 0);
+        staminaP2 = Math.max(staminaP2, 0);
+
         // Determinar ganador
         let ganador = vidaP1 > vidaP2 ? p1 : p2;
+
+        log.push(`${ganador.nombre} ha vencido a ${
+            ganador.id === p1.id ? p2.nombre : p1.nombre
+        }`);
 
             // Guardar en DB
             await pool.query(
@@ -128,8 +161,19 @@ const simularBatalla = async (req, res) => {
             // Respuesta
             res.json({
             ganador: ganador.nombre,
-            vida_final_p1: Math.max(vidaP1, 0),
-            vida_final_p2: Math.max(vidaP2, 0),
+            rondas: ronda,
+            personaje1: {
+                nombre: p1.nombre,
+                vida_final: Math.max(vidaP1, 0),
+                danio_total: danioTotalP1,
+                stamina: Math.floor(staminaP1)
+            },
+            personaje2: {
+                nombre: p2.nombre,
+                vida_final: Math.max(vidaP2, 0),
+                danio_total: danioTotalP2,
+                stamina: Math.floor(staminaP2)
+            },
             historial: log
             });
 
