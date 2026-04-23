@@ -11,23 +11,28 @@ const ejecutarAtaque = (atacante, defensor) => {
     let logExtra = null;
 
     // EVASIÓN (AGILIDAD)
-    const probEvasion = (defensor.agilidad / 100) * 0.3;
+    const probEvasion = (defensor.agilidad / 100) * 0.30; // Máximo 30% de evasión
     if (Math.random() < probEvasion) {
-        return { danio: 0, evento: `${defensor.nombre} esquivó el ataque` };
+        return { 
+            danio: 0, 
+            evento: `${defensor.nombre} esquivó el ataque de ${atacante.nombre}` 
+        };
     }
 
     // BASE 
     let ataque = atacante.fuerza;
-    let defensa = Math.abs(defensor.defensa - defensor.agilidad) + defensor.conocimiento;
+    let defensa = (defensor.defensa * 0.7) + (defensor.agilidad * 0.3) + (defensor.conocimiento * 0.3);
 
-    let danio = Math.abs(ataque - defensa);
+    let danio = ataque * (100 / (100 + defensa))
+
+    let danioBase = danio;
 
     // VARIACIÓN RANDOM
     danio *= (0.85 + Math.random() * 0.3);
 
     // CRÍTICO POR MAGIA
-    if (atacante.magia > 70 && Math.random() < 0.3) {
-        danio *= 1.5;
+    if ((atacante.magia + atacante.agilidad) > 140 && Math.random() < 0.25) {
+        danio *= 1.3;
         logExtra = `${atacante.nombre} lanzó un ataque mágico crítico`;
     }
 
@@ -36,6 +41,8 @@ const ejecutarAtaque = (atacante, defensor) => {
 
     return {
         danio: Math.floor(danio),
+        danioBase: Math.floor(danioBase),
+        critico: logExtra !== null,
         evento: logExtra
     };
 };
@@ -63,8 +70,8 @@ const simularBatalla = async (req, res) => {
         const p1 = p1Result.rows[0];
         const p2 = p2Result.rows[0];
 
-        let vidaP1 = 100;
-        let vidaP2 = 100;
+        let vidaP1 = 200;
+        let vidaP2 = 200;
 
         let log = [];
 
@@ -100,11 +107,20 @@ const simularBatalla = async (req, res) => {
                 staminaP1 -= atkA.danio * 0.1;
             }
 
-            log.push(
-                `Ronda ${ronda}: ${
-                    atkA.evento || `${atacante.nombre} hace ${atkA.danio} daño a ${defensor.nombre}`
-                }`
-            );
+            log.push(`--- Ronda ${ronda} ---`);
+            log.push(`${atacante.nombre} ataca a ${defensor.nombre}`);
+            if (atkA.evento) {
+                log.push(atkA.evento);
+            }
+
+            if (atkA.danio > 0) {
+                if (atkA.critico) {
+                    log.push(`${defensor.nombre} recibe ${atkA.danio} de daño (crítico, base: ${atkA.danioBase})`);
+                } else {
+                    log.push(`${defensor.nombre} recibe ${atkA.danio} de daño`);
+                }
+            }
+
 
             if (vidaP1 <= 0 || vidaP2 <= 0) break;
 
@@ -126,9 +142,19 @@ const simularBatalla = async (req, res) => {
                 staminaP1 -= atkB.danio * 0.1;
             }
 
-            log.push(
-                atkB.evento || `${defensor.nombre} hace ${atkB.danio} daño`
-            );
+            log.push(`${defensor.nombre} ataca a ${atacante.nombre}`);
+
+            if (atkB.evento) {
+                log.push(atkB.evento);
+            }
+
+            if (atkB.danio > 0) {
+                if (atkB.critico) {
+                    log.push(`${atacante.nombre} recibe ${atkB.danio} de daño (crítico, base: ${atkB.danioBase})`);
+                } else {
+                    log.push(`${atacante.nombre} recibe ${atkB.danio} de daño`);
+                }
+            }
 
             ronda++;
         }
@@ -154,7 +180,7 @@ const simularBatalla = async (req, res) => {
                 ganador.id,
                 Math.max(vidaP1, 0),
                 Math.max(vidaP2, 0),
-                log.join(' | ')
+                JSON.stringify(log)
             ]
         );
 
