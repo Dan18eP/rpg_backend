@@ -75,8 +75,8 @@ const ejecutarAtaque = (atacante, defensor, stamina) => {
     }
 
     let ataque = atacante.fuerza;
-    let defensa = (defensor.defensa * 0.7) + (defensor.agilidad * 0.3) + (defensor.conocimiento * 0.3);
-
+    let defensa = 
+(defensor.defensa * 0.7) + (defensor.agilidad * 0.3) + (defensor.conocimiento * 0.3);
     let danio = ataque * (100 / (100 + defensa));
     let danioBase = danio;
 

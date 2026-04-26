@@ -11,7 +11,7 @@ Este proyecto implementa un sistema backend que permite:
 - Gestionar personajes con atributos RPG
 - Simular combates entre personajes
 - Aplicar lógica de combate basada en estadísticas
-- Generar resultados detallados con métricas y narrativa
+- Generar resultados detallados con historial de batalla
 
 ---
 
@@ -40,6 +40,8 @@ rpg_backend/
 │   │   └── batallas.controller.js
 │   │
 │   ├── services/
+|   |   |── battle.service.js
+|   |   └── personajes.service.js
 │   │
 │   ├── db.js
 │   └── app.js
@@ -136,6 +138,68 @@ CREATE TABLE batallas (
 
 ### Batallas
 
+Historial de Batallas
+
+#### Obtener todas las batallas
+
+```http
+GET /batallas/resultados
+```
+
+Retorna todas las batallas registradas, ordenadas de la más reciente a la más antigua.
+
+**Ejemplo de respuesta:**
+
+```json
+[
+    {
+        "id": 141,
+        "personaje1": "Asta",
+        "personaje2": "Yami",
+        "ganador": "Yami",
+        "vida_p1": 0,
+        "vida_p2": 1,
+        "resumen": "...",
+        "created_at": "2026-04-26T05:28:22.189Z"
+    },
+    {
+        "id": 140,
+        "personaje1": "Asta",
+        "personaje2": "Yuno",
+        "ganador": "Asta",
+        "vida_p1": 79,
+        "vida_p2": 0,
+        "resumen": "...",
+        "created_at": "2026-04-26T05:27:54.089Z"
+    },
+    .
+    .
+    .
+```
+
+#### Obtener batalla por ID
+
+```http
+GET /batallas/resultados/:id
+```
+
+Retorna el detalle de una batalla específica.
+
+**Ejemplo de respuesta:**
+
+```json
+{
+  "id": 5,
+  "personaje1": "Yuno",
+  "personaje2": "Noelle",
+  "ganador": "Yuno",
+  "vida_p1": 73,
+  "vida_p2": 0,
+  "resumen": "...",
+  "created_at": "2026-04-26T20:10:00.000Z"
+}
+```
+
 #### Simular batalla
 
 ```http
@@ -155,22 +219,36 @@ POST /batallas
 
 ## Lógica de combate
 
-El sistema implementa una lógica basada en atributos:
+El sistema implementa una simulación por rondas donde ambos personajes actúan antes de avanzar de ronda.
 
 ### Ataque
-AT = Fuerza
+
+AT = FUERZA * (100 / (100 + DEF))
+
+El daño base depende de la fuerza del atacante y la defensa del oponente:
+
+La defensa combina:
+- Defensa
+- Agilidad
+- Conocimiento
 
 ### Defensa
-DEF = |Defensa - Agilidad| + Conocimiento
+(defensor.defensa * 0.7) + (defensor.agilidad * 0.3) + (defensor.conocimiento * 0.3);
 
 ### Mecánicas avanzadas
 
-- 🌀 **Evasión:** basada en la agilidad del defensor
-- ✨ **Ataques críticos:** influenciados por la magia
-- 🧠 **Bonus estratégico:** basado en conocimiento
-- 🎲 **Variación de daño:** aleatoriedad en cada ataque
-- 🔁 **Combate por rondas**
-- 💪 **Stamina:** reduce rendimiento según el daño recibido
+-  **Evasión:** Probabilidad basada en la agilidad del defensor
+→ Si esquiva, el daño es 0 pero el atacante pierde stamina.
+-  **Ataques críticos:** Probabilidad influenciada por el conocimiento y la stamina
+→ Aumentan el daño total.
+-  **Bonus estratégico:** basado en conocimiento
+-  **Variación de daño:** Factor aleatorio para evitar resultados predecibles.
+-  **Combate por rondas**: Cada ronda incluye acción de ambos personajes
+Solo avanza la ronda cuando ambos han actuado.
+-  **Stamina:** 
+  - Cada ataque consume stamina (aunque falle o sea esquivado).
+  - A menor stamina → menor daño.
+  - Recuperación pasiva por ronda.
 
 ---
 
@@ -181,24 +259,27 @@ Ejemplo de respuesta:
 ```json
 {
   "ganador": "Yuno",
-  "rondas": 3,
+  "rondas": 7,
   "personaje1": {
-    "nombre": "Asta",
-    "vida_final": 0,
-    "danio_total": 60,
-    "stamina": 70
+    "nombre": "Yuno",
+    "vida_final": 73,
+    "danio_total": 213,
+    "stamina": 79
   },
   "personaje2": {
-    "nombre": "Yuno",
-    "vida_final": 40,
-    "danio_total": 120,
-    "stamina": 65
+    "nombre": "Noelle",
+    "vida_final": 0,
+    "danio_total": 138,
+    "stamina": 70
   },
   "historial": [
-    "Ronda 1: Asta hace 20 daño a Yuno",
+    "--- Ronda 1 ---",
+    "Yuno ataca a Noelle",
+    "Noelle recibe 42 de daño",
+    "Noelle ataca a Yuno",
     "Yuno esquivó el ataque",
-    "Ronda 2: Yuno lanzó un ataque mágico crítico",
-    "Yuno ha vencido a Asta"
+    "...",
+    "Yuno ha vencido a Noelle"
   ]
 }
 ```
@@ -207,20 +288,24 @@ Ejemplo de respuesta:
 
 ## Características destacadas
 
-- Arquitectura REST
-- Persistencia en PostgreSQL
-- Lógica de negocio basada en atributos
-- Simulación dinámica de combate
-- Manejo de errores
-- Código modular y escalable
+- Arquitectura REST limpia.
+- Separación por capas (routes, controllers, services).
+- Persistencia en PostgreSQL.
+- Sistema de combate dinámico.
+- Uso de lógica probabilística (críticos, evasión).
+- Simulación con historial detallado.
 
 ---
 
 ## Estado del proyecto
 
-- CRUD completo
+- CRUD de personajes
 - Sistema de batallas funcional
 - Mecánicas avanzadas implementadas
+- Mejoras futuras (pendiente):
+  - Poderes especiales por personaje
+  - Animaciones o visualización frontend
+  - Balanceo de combate
 
 ---
 
