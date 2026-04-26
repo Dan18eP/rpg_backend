@@ -49,13 +49,15 @@ const calcularDefensa = (p) => {
     return Math.abs(p.defensa - p.agilidad) + p.conocimiento;
 };
 
-const ejecutarAtaque = (atacante, defensor) => {
+const ejecutarAtaque = (atacante, defensor, stamina) => {
     let logExtra = null;
 
     const probEvasion = (defensor.agilidad / 100) * 0.30;
     if (Math.random() < probEvasion) {
         return { 
-            danio: 0, 
+            danio: 0,
+            danioBase: atacante.fuerza, 
+            critico: false,
             evento: `${defensor.nombre} esquivó el ataque de ${atacante.nombre}` 
         };
     }
@@ -66,9 +68,13 @@ const ejecutarAtaque = (atacante, defensor) => {
     let danio = ataque * (100 / (100 + defensa));
     let danioBase = danio;
 
+    danio = Math.max(5, danio);
+
     danio *= (0.85 + Math.random() * 0.2);
 
-    const probCritico = 0.15 + (atacante.conocimiento / 100) * 0.3;
+    let probCritico = 0.15 + (atacante.conocimiento / 100) * 0.3;
+
+    probCritico *= (stamina / 100);
 
     if (Math.random() < probCritico) {
         danio *= 1.3;
@@ -76,6 +82,12 @@ const ejecutarAtaque = (atacante, defensor) => {
     }
 
     danio *= (1 + (atacante.conocimiento / 100) * 0.2);
+
+    const factorStamina = Math.max(0.2, stamina / 100);
+    danio *= factorStamina;
+
+    danio = Math.max(5, danio);
+    
 
     return {
         danio: Math.floor(danio),
@@ -102,66 +114,132 @@ const simularBatallaService = (p1, p2) => {
     let danioTotalP1 = 0;
     let danioTotalP2 = 0;
 
+    
+
     while (vidaP1 > 0 && vidaP2 > 0) {
 
-        const atkA = ejecutarAtaque(atacante, defensor);
-
-        if (defensor.id === p1.id) {
-            vidaP1 -= atkA.danio;
-            danioTotalP2 += atkA.danio;
-            staminaP2 -= atkA.danio * 0.1;
-        } else {
-            vidaP2 -= atkA.danio;
-            danioTotalP1 += atkA.danio;
-            staminaP1 -= atkA.danio * 0.1;
-        }
-
         log.push(`--- Ronda ${ronda} ---`);
-        log.push(`${atacante.nombre} ataca a ${defensor.nombre}`);
 
-        if (atkA.evento) {
-            log.push(atkA.evento);
+
+        // 1. Obtener stamina del atacante actual
+        let staminaActual = atacante.id === p1.id ? staminaP1 : staminaP2;
+        let curacion = Math.floor(Math.random() * 10) + 5;
+
+        // 2. Decidir si descansa
+        if (staminaActual < 70 && Math.random() < 0.5) {
+            // DESCANSO
+            if (atacante.id === p1.id) {
+                staminaP1 = Math.min(100, staminaP1 + 10);
+                vidaP1 = Math.min(200, vidaP1 + curacion);
+            } else {
+                staminaP2 = Math.min(100, staminaP2 + 10);
+                vidaP2 = Math.min(200, vidaP2 + curacion);
+            }
+
+
+            log.push(`${atacante.nombre} descansa ⚡ y recupera +10 de stamina y ${curacion} de vida ❤️`);
+        } else {
+            // ATAQUE
+            const atkA = ejecutarAtaque(atacante, defensor, staminaActual);
+
+            if (defensor.id === p1.id) {
+                vidaP1 -= atkA.danio;
+                danioTotalP2 += atkA.danio;
+            } else {
+                vidaP2 -= atkA.danio;
+                danioTotalP1 += atkA.danio;
+            }
+
+            const costoStaminaA = 5 + atkA.danioBase * 0.08;
+
+            if (atacante.id === p1.id) {
+                staminaP1 -= costoStaminaA;
+            } else {
+                staminaP2 -= costoStaminaA;
+            }
+
+            staminaP1 = Math.max(0, staminaP1);
+            staminaP2 = Math.max(0, staminaP2);
+
+            log.push(`${atacante.nombre} ataca a ${defensor.nombre}`);
+
+            if (atkA.evento) {
+                log.push(atkA.evento);
+            }
+
+            let textoA = `${defensor.nombre} recibe ${atkA.danio} de daño`;
+
+            if (atkA.critico) {
+                textoA += ` 💥 CRÍTICO (base: ${atkA.danioBase})`;
+            }
+
+            log.push(textoA);
         }
-
-        let texto = `${defensor.nombre} recibe ${atkA.danio} de daño`;
-
-        if (atkA.critico) {
-            texto += ` 💥 CRÍTICO (base: ${atkA.danioBase})`;
-        }
-
-        log.push(texto);
 
         if (vidaP1 <= 0 || vidaP2 <= 0) break;
 
-        const atkB = ejecutarAtaque(defensor, atacante);
+        // ===== TURNO DEFENSOR =====
+        let staminaDefensor = defensor.id === p1.id ? staminaP1 : staminaP2;
 
-        if (atacante.id === p1.id) {
-            vidaP1 -= atkB.danio;
-            danioTotalP2 += atkB.danio;
-            staminaP2 -= atkB.danio * 0.1;
+        if (staminaDefensor < 70 && Math.random() < 0.5) {
+            // DESCANSO
+            if (defensor.id === p1.id) {
+                staminaP1 = Math.min(100, staminaP1 + 10);
+                vidaP1 = Math.min(200, vidaP1 + curacion);
+            } else {
+                staminaP2 = Math.min(100, staminaP2 + 10);
+                vidaP2 = Math.min(200, vidaP2 + curacion);
+            }
+
+            log.push(`${defensor.nombre} descansa⚡ y recupera +10 stamina y ${curacion} de vida ❤️`);
         } else {
-            vidaP2 -= atkB.danio;
-            danioTotalP1 += atkB.danio;
-            staminaP1 -= atkB.danio * 0.1;
+            // ATAQUE
+            const atkB = ejecutarAtaque(defensor, atacante, staminaDefensor);
+
+            if (atacante.id === p1.id) {
+                vidaP1 -= atkB.danio;
+                danioTotalP2 += atkB.danio;
+            } else {
+                vidaP2 -= atkB.danio;
+                danioTotalP1 += atkB.danio;
+        
+            }
+
+            const costoStaminaB = 5 + atkB.danioBase * 0.08;
+
+            if (defensor.id === p1.id) {
+                staminaP1 -= costoStaminaB;
+            } else {
+                staminaP2 -= costoStaminaB;
+            }
+
+            staminaP1 = Math.max(0, staminaP1);
+            staminaP2 = Math.max(0, staminaP2);
+
+            log.push(`${defensor.nombre} ataca a ${atacante.nombre}`);
+
+            if (atkB.evento) {
+                log.push(atkB.evento);
+            }
+
+            let textoB = `${atacante.nombre} recibe ${atkB.danio} de daño`;
+
+            if (atkB.critico) {
+                textoB += ` 💥 CRÍTICO (base: ${atkB.danioBase})`;
+            }
+
+            log.push(textoB);
         }
 
-        log.push(`${defensor.nombre} ataca a ${atacante.nombre}`);
+        // Intercambiar roles
+        [atacante, defensor] = [defensor, atacante];
 
-        if (atkB.evento) log.push(atkB.evento);
-
-        if (atkB.danio === 0 && !atkB.evento) {
-            log.push("El ataque no hizo daño");
-        }
-
-        if (atkB.danio > 0) {
-            log.push(
-                atkB.critico
-                ? `💥 ${atacante.nombre} recibe ${atkB.danio} de daño (crítico, base: ${atkB.danioBase})`
-                : `${atacante.nombre} recibe ${atkB.danio} de daño`
-            );
-        }
-
+        // AVANZA LA RONDA
         ronda++;
+
+        // recuperación pasiva
+        staminaP1 = Math.min(100, staminaP1 + 2);
+        staminaP2 = Math.min(100, staminaP2 + 2);
     }
 
     let ganador = vidaP1 > vidaP2 ? p1 : p2;
@@ -169,6 +247,8 @@ const simularBatallaService = (p1, p2) => {
     log.push(`${ganador.nombre} ha vencido a ${
         ganador.id === p1.id ? p2.nombre : p1.nombre
     }`);
+
+
 
     return {
         ganador,
@@ -182,6 +262,7 @@ const simularBatallaService = (p1, p2) => {
         danioTotalP2
     };
 };
+
 
 
 
