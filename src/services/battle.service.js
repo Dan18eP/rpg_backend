@@ -1,3 +1,48 @@
+const pool = require('../db');
+
+
+const verResultados = async () => {
+    const result = await pool.query(`
+        SELECT 
+            b.id,
+            p1.nombre AS personaje1,
+            p2.nombre AS personaje2,
+            g.nombre AS ganador,
+            b.vida_p1,
+            b.vida_p2,
+            b.resumen,
+            b.created_at
+        FROM batallas b
+        JOIN personajes p1 ON b.personaje1_id = p1.id
+        JOIN personajes p2 ON b.personaje2_id = p2.id
+        JOIN personajes g ON b.ganador_id = g.id
+        ORDER BY b.id DESC
+    `);
+
+    return result.rows;
+};
+
+const verResultadosPorId = async (id) => {
+    const result = await pool.query(`
+        SELECT 
+            b.id,
+            p1.nombre AS personaje1,
+            p2.nombre AS personaje2,
+            g.nombre AS ganador,
+            b.vida_p1,
+            b.vida_p2,
+            b.resumen,
+            b.created_at
+        FROM batallas b
+        JOIN personajes p1 ON b.personaje1_id = p1.id
+        JOIN personajes p2 ON b.personaje2_id = p2.id
+        JOIN personajes g ON b.ganador_id = g.id
+        WHERE b.id = $1
+    `, [id]);
+
+    return result.rows[0];
+};
+
 const calcularAtaque = (p) => p.fuerza;
 
 const calcularDefensa = (p) => {
@@ -138,6 +183,11 @@ const simularBatallaService = (p1, p2) => {
     };
 };
 
+
+
+
 module.exports = {
-    simularBatallaService
+    simularBatallaService,
+    verResultados,
+    verResultadosPorId
 };

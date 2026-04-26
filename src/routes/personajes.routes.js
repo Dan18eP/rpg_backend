@@ -3,28 +3,28 @@ const router = Router();
 
 // controllers
 const {
-    crearPersonaje,
-    obtenerPersonajes,
-    obtenerPersonajePorId,
-    actualizarPersonaje,
-    eliminarPersonaje
+    crear,
+    listar,
+    obtenerPorId,
+    actualizar,
+    eliminar
 } = require('../controllers/personajes.controller');
 
 // CRUD
 
 // Crear
-router.post('/', crearPersonaje);
+router.post('/', crear);
 
 // Listar todos
-router.get('/', obtenerPersonajes);
+router.get('/', listar);
 
 // Obtener por ID
-router.get('/:id', obtenerPersonajePorId);
+router.get('/:id', obtenerPorId);
 
 // Actualizar
-router.put('/:id', actualizarPersonaje);
+router.put('/:id', actualizar);
 
 // Eliminar
-router.delete('/:id', eliminarPersonaje);
+router.delete('/:id', eliminar);
 
 module.exports = router;

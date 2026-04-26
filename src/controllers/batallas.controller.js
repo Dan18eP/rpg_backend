@@ -1,6 +1,28 @@
 const pool = require('../db');
 
-const { simularBatallaService } = require('../services/battle.service');
+const {simularBatallaService, verResultados, verResultadosPorId} = require('../services/battle.service');
+
+const listarBatallas = async (req, res) => {
+    try {
+        const batallas = await verResultados();
+        res.json(batallas);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener batallas' });
+    }
+};
+
+const obtenerBatallaPorId = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const batalla = await verResultadosPorId(id);
+        if (!batalla) {
+            return res.status(404).json({ error: 'Batalla no encontrada' });
+        }
+        res.json(batalla);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener batalla' });
+    }
+};
 
 const simularBatalla = async (req, res) => {
     const { personaje1_id, personaje2_id } = req.body;
@@ -67,8 +89,16 @@ const simularBatalla = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Error en la batalla' });
     }
+
+    
+
+
 };
 
+
 module.exports = {
-    simularBatalla
+    simularBatalla,
+    listarBatallas,
+    obtenerBatallaPorId
+
 };
