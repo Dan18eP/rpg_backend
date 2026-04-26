@@ -1,5 +1,17 @@
 const pool = require('../db');
 
+const poderes = {
+    Asta: ["Black Slash", "Anti-Magic Slash"],
+    Yuno: ["Spirit Storm", "Wind Blade"],
+    Noelle: ["Sea Dragon Roar", "Valkyrie Armor"],
+    Yami: ["Dark Cloaked Slash", "Dimension Slash"],
+    Luck: ["Lightning Strike", "Thunder God Boots"],
+    Magna: ["Fireball", "Explosive Flame"],
+    Julius: ["Time Stop", "Chrono Blast"],
+    Mereoleona: ["Calidos Brachium", "Hellfire Incarnate"],
+    Fuegoleon: ["Fire Lion Roar", "Crimson Flame"],
+    Finral: ["Spatial Portal", "Fallen Angel Gate"]
+};
 
 const verResultados = async () => {
     const result = await pool.query(`
@@ -114,6 +126,11 @@ const simularBatallaService = (p1, p2) => {
     let danioTotalP1 = 0;
     let danioTotalP2 = 0;
 
+    const obtenerPoderRandom = (nombre) => {
+    const lista = poderes[nombre] || ["Ataque básico"];
+    return lista[Math.floor(Math.random() * lista.length)];
+    };
+
     
 
     while (vidaP1 > 0 && vidaP2 > 0) {
@@ -161,7 +178,8 @@ const simularBatallaService = (p1, p2) => {
             staminaP1 = Math.max(0, staminaP1);
             staminaP2 = Math.max(0, staminaP2);
 
-            log.push(`${atacante.nombre} ataca a ${defensor.nombre}`);
+            const poderA = obtenerPoderRandom(atacante.nombre);
+            log.push(`${atacante.nombre} usa ${poderA} contra ${defensor.nombre}`);
 
             if (atkA.evento) {
                 log.push(atkA.evento);
@@ -216,7 +234,8 @@ const simularBatallaService = (p1, p2) => {
             staminaP1 = Math.max(0, staminaP1);
             staminaP2 = Math.max(0, staminaP2);
 
-            log.push(`${defensor.nombre} ataca a ${atacante.nombre}`);
+            const poderB = obtenerPoderRandom(defensor.nombre);
+            log.push(`${defensor.nombre} usa ${poderB} contra ${atacante.nombre}`);
 
             if (atkB.evento) {
                 log.push(atkB.evento);
